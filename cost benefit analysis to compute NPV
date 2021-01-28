@@ -1,38 +1,62 @@
-def cba(): 
-    investment = 1700*1e6          # intial capital investment
-    r = 0.05                       # discounted rate of return
+import numpy as np
+import pandas as pd
 
-    fuel = 18.2*1e6                #demand for fuel per year in mega watts per hour
-    fprice = 4                     # cost of fuel in euro per mega watts hour
-    fuel_cost = fuel*fprice        # computing the fixed cost of fuel per annum
-
-    emmision = 7.098*1e6           #carbon emissions in tons per annum from burning fuel
-    cprice = 25                    # price per ton emission in euro 
-
-    electricity = 8*1e6            #eletricity produced in mega watts hour per annum
-    eprice = 70                    # value of a mega watt hour of electricity in euro
-    benefits = electricity*eprice  # benefits from generating the electricity at a price point
-
-    net_ben= []
-
+def cba(inv=1700*1e6,r=0.05,fuc=18.2*1e6 ,fp=4,eg=8*1e6,ep=70,em=7.098*1e6): 
+    
+    import numpy as np
+    import pandas as pd
+                                         
+    fuel_cost = fuc*fp            
+    
+    
+    cost = [inv]  #cost of investment year (zeroth)
+    df = [1]      # discounted benefit of investment (zeroth) year
+    benefits = [0]
+    net_ben = [-inv]
+    dis_net_ben= [-inv]
+    
+    
+    bet = 0   # variable to compute break even year for investment
+    
     t =int(input('enter time period in years: '))  # taking time for CBA
-
+    
+    benefit = eg*ep  # yearly benefit from generating the electricity at a price point, same for all years
+    
+    
+    count = 0
+    
     for year in range(1,t+1):
         if year <=4:
-            cprice = 10
+            ec = 10
         elif year <= 7:
-            cprice = 15
+            ec = 15
         elif year <= 10:
-            cprice = 20
-        else : cprice =25
+            ec = 20
+        else : ec =25
 
-        carbon_cost = emmision*cprice
-        cost = fuel_cost + carbon_cost
+        carbon_tax =em*ec
+        cost.append(fuel_cost + carbon_tax)
+        df.append((1+r)**-year)
+        nb =  benefit - cost[-1]
+        db = nb*df[-1]
 
-        net_ben.append((benefits - cost)*((1+r)**-year))
+        benefits.append(benefit)
+        net_ben.append(nb)
+        dis_net_ben.append(db)
+        
+        
+        if count ==0 and np.sum(dis_net_ben) >= 0:
+            bet = year
+            count = 1
 
-
-
-    npv = (-investment + np.sum(net_ben))/1e6 
-
-    print('discounted benefit: ', round(npv,2))
+    #npv = investment + np.sum(net_ben)/1e6 
+    
+    daf = pd.DataFrame({'cost':cost,'benefits':benefits,'net benefits':net_ben,'discount factor':df, 
+                       'discounted benefits':dis_net_ben})
+    if bet == 0:
+        print('discounted benefit: ', round(np.sum(dis_net_ben)/1e6,2), 'million euro\n','No break even')
+    else:
+        print('discounted benefit: ', round(np.sum(dis_net_ben)/1e6,2), 'million euro\n','Break-even: year',bet)
+    return daf
+df = cba()
+df.head(21)
